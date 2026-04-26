@@ -31,7 +31,7 @@ Open `http://localhost:4000` to preview your site. Deploy the `output/` director
 
 ## Site structure
 
-```
+```text
 my-site/
 ├── config.toml        # Site settings and navigation
 ├── content/
@@ -47,7 +47,7 @@ my-site/
 
 Posts and pages use TOML front matter:
 
-```
+```toml
 +++
 title = "Hello, World"
 date  = 2026-01-15
