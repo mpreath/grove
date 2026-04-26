@@ -3,7 +3,7 @@
 require_relative "lib/grove/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "grove"
+  spec.name = "grove-cli"
   spec.version = Grove::VERSION
   spec.authors = ["Matt Reath"]
   spec.email = ["mattreath@icloud.com"]

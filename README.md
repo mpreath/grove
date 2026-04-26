@@ -3,7 +3,8 @@ A lightweight static site generator for the small web. Write in Markdown, publis
 
 ## Install
 
-gem install grove
+```bash
+gem install grove-cli
 ```
 
 ## Quick start
