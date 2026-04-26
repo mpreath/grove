@@ -1,0 +1,26 @@
+<section>
+  <% if defined?(tag) && tag %>
+    <h1>Posts tagged #<%= tag %></h1>
+    <p><a href="<%= root_relative('') %>">← All posts</a></p>
+  <% else %>
+    <h1><%= config['site_title'] %></h1>
+    <% if config['description'] %>
+      <p class="site-description"><%= config['description'] %></p>
+    <% end %>
+  <% end %>
+
+  <% if posts.empty? %>
+    <p>No posts yet.</p>
+  <% else %>
+    <ul class="post-list">
+      <% posts.each do |post| %>
+        <li>
+          <% if post.date %>
+            <time datetime="<%= post.date %>"><%= post.date.strftime("%Y-%m-%d") %></time>
+          <% end %>
+          <a href="<%= root_relative("posts/#{post.slug}/") %>"><%= post.title %></a>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>

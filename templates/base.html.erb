@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= defined?(page) && page&.title ? "#{page.title} — #{config['site_title']}" : config['site_title'] %></title>
+  <meta name="description" content="<%= config['description'] %>">
+  <link rel="stylesheet" href="<%= root_relative('style.css') %>">
+  <link rel="alternate" type="application/rss+xml" title="<%= config['site_title'] %>" href="<%= (config['base_url'] || '').chomp('/') %>/feed.xml">
+</head>
+<body>
+  <header>
+    <nav>
+      <% (config['nav'] || []).each do |item| %>
+        <a href="<%= item['url'] %>"><%= item['label'] %></a>
+      <% end %>
+    </nav>
+  </header>
+
+  <main>
+    <%= content %>
+  </main>
+
+  <footer>
+    <p><%= config['footer'] %></p>
+  </footer>
+</body>
+</html>
