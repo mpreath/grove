@@ -1,10 +1,13 @@
 # Grove
 
-A lightweight static site generator for the small web. Write in Markdown, publish to pure HTML and CSS — no JavaScript, no external resources, no tracking.
+<table border=0>
+  <tr><td></td><td>A lightweight static site generator for the small web. Write in Markdown, publish to pure HTML and CSS — no JavaScript, no external resources, no tracking.
+</td></tr>
 
 ## Install
 
-```bash
+```bash<img width="3712" height="5149" alt="clipart35421" src="https://github.com/user-attachments/assets/ab17dffe-732e-4fe8-92af-f1e5aca01092" />
+
 gem install grove
 ```
 
