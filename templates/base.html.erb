@@ -12,7 +12,7 @@
   <header>
     <nav>
       <% (config['nav'] || []).each do |item| %>
-        <a href="<%= item['url'] %>"><%= item['label'] %></a>
+        <a href="<%= site_url(item['url']) %>"><%= item['label'] %></a>
       <% end %>
     </nav>
   </header>
