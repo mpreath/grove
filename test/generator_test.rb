@@ -216,4 +216,44 @@ class GeneratorTest < Minitest::Test
       assert_equal original, File.read(existing)
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Galleries
+  # ---------------------------------------------------------------------------
+
+  def test_run_creates_gallery_markdown
+    Dir.mktmpdir do |dir|
+      capture_io { Grove::Generator.run("gallery", "My Art", dir) }
+      path = File.join(dir, "content", "galleries", "my-art.md")
+      assert File.exist?(path)
+      assert_includes File.read(path), 'title = "My Art"'
+    end
+  end
+
+  def test_run_creates_gallery_assets_folder
+    Dir.mktmpdir do |dir|
+      capture_io { Grove::Generator.run("gallery", "My Art", dir) }
+      assert Dir.exist?(File.join(dir, "content", "assets", "galleries", "my-art"))
+    end
+  end
+
+  def test_run_aborts_when_gallery_already_exists
+    Dir.mktmpdir do |dir|
+      FileUtils.mkdir_p(File.join(dir, "content", "galleries"))
+      File.write(File.join(dir, "content", "galleries", "my-art.md"), "existing")
+
+      assert_raises(SystemExit) do
+        capture_io { Grove::Generator.run("gallery", "My Art", dir) }
+      end
+    end
+  end
+
+  def test_generated_gallery_parses_and_builds_an_empty_gallery
+    Dir.mktmpdir do |dir|
+      capture_io { Grove::Generator.run("gallery", "My Art", dir) }
+      gallery = Grove::Content.scan(dir).find { |p| p.kind == :gallery }
+      assert_equal "My Art", gallery.title
+      assert_equal [], gallery.images
+    end
+  end
 end

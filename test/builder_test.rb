@@ -349,6 +349,99 @@ class BuilderTest < Minitest::Test
   # Private helpers
   # ---------------------------------------------------------------------------
 
+  # ---------------------------------------------------------------------------
+  # Galleries
+  # ---------------------------------------------------------------------------
+
+  def test_build_renders_gallery_page
+    Grove::Builder.new(@dir).build
+    assert_file "galleries/photography/index.html"
+  end
+
+  def test_gallery_page_includes_images_and_lightbox_anchors
+    Grove::Builder.new(@dir).build
+    html = read_output("galleries/photography/index.html")
+    assert_includes html, "galleries/photography/sunset.jpg"
+    assert_includes html, "galleries/photography/pier.jpg"
+    assert_includes html, %(href="#photography-1")
+    assert_includes html, %(class="lightbox" id="photography-1")
+  end
+
+  def test_gallery_page_uses_page_title_and_renders_body
+    Grove::Builder.new(@dir).build
+    html = read_output("galleries/photography/index.html")
+    assert_includes html, "<title>Photography — Test Site</title>"
+    assert_includes html, "Photos from the coast."
+  end
+
+  def test_gallery_listed_images_come_first_with_captions
+    Grove::Builder.new(@dir).build
+    html = read_output("galleries/photography/index.html")
+    assert_includes html, "Golden hour"
+    assert_operator html.index("sunset.jpg"), :<, html.index("pier.jpg")
+  end
+
+  def test_build_copies_gallery_images_alongside_the_page
+    Grove::Builder.new(@dir).build
+    assert_file "galleries/photography/sunset.jpg"
+    assert_file "galleries/photography/pier.jpg"
+  end
+
+  def test_build_renders_gallery_index
+    Grove::Builder.new(@dir).build
+    html = read_output("galleries/index.html")
+    assert_includes html, "galleries/photography/"
+    assert_includes html, "Photography"
+  end
+
+  def test_gallery_index_uses_first_image_as_cover
+    Grove::Builder.new(@dir).build
+    assert_includes read_output("galleries/index.html"), "galleries/photography/sunset.jpg"
+  end
+
+  def test_draft_gallery_is_excluded
+    Grove::Builder.new(@dir).build
+    refute File.exist?(output("galleries/draft-gallery/index.html"))
+    refute_includes read_output("galleries/index.html"), "Draft Gallery"
+    refute_includes read_output("sitemap.xml"), "draft-gallery"
+  end
+
+  def test_gallery_with_no_images_still_builds
+    write_gallery("sketches", "Sketches")
+    capture_io { Grove::Builder.new(@dir).build }
+    html = read_output("galleries/sketches/index.html")
+    assert_includes html, "No images yet"
+  end
+
+  def test_no_gallery_index_when_there_are_no_galleries
+    FileUtils.rm_rf(File.join(@dir, "content", "galleries"))
+    Grove::Builder.new(@dir).build
+    refute File.exist?(output("galleries/index.html"))
+  end
+
+  def test_gallery_added_image_appears_on_rebuild_even_with_fast
+    builder = Grove::Builder.new(@dir)
+    builder.build
+    refute_includes read_output("galleries/photography/index.html"), "newphoto.jpg"
+
+    File.write(File.join(@dir, "content", "assets", "galleries", "photography", "newphoto.jpg"), "")
+    builder.build(fast: true)
+    assert_includes read_output("galleries/photography/index.html"), "newphoto.jpg"
+  end
+
+  def test_sitemap_includes_gallery_urls
+    Grove::Builder.new(@dir).build
+    sitemap = read_output("sitemap.xml")
+    assert_includes sitemap, "<loc>https://example.com/galleries/</loc>"
+    assert_includes sitemap, "<loc>https://example.com/galleries/photography/</loc>"
+    assert_includes sitemap, "<lastmod>2024-02-01</lastmod>"
+  end
+
+  def test_rss_excludes_galleries
+    Grove::Builder.new(@dir).build
+    refute_includes read_output("feed.xml"), "Photography"
+  end
+
   private
 
   def output(rel)
@@ -361,6 +454,22 @@ class BuilderTest < Minitest::Test
 
   def read_output(rel)
     File.read(output(rel))
+  end
+
+  # Creates a gallery md plus its image folder, returning the assets dir.
+  def write_gallery(slug, title, images: [], extra: nil)
+    FileUtils.mkdir_p(File.join(@dir, "content", "galleries"))
+    assets = File.join(@dir, "content", "assets", "galleries", slug)
+    FileUtils.mkdir_p(assets)
+    images.each { |name| File.write(File.join(assets, name), "") }
+
+    File.write(File.join(@dir, "content", "galleries", "#{slug}.md"), <<~MD)
+      +++
+      title = "#{title}"
+      #{extra}+++
+
+    MD
+    assets
   end
 
   def write_post(filename, title, tags: [], draft: false)
@@ -379,7 +488,7 @@ class BuilderTest < Minitest::Test
 
   def setup_site(dir)
     # ── Directories ──────────────────────────────────────────────────────────
-    %w[content/posts content/pages content/assets templates static output].each do |d|
+    %w[content/posts content/pages content/galleries content/assets templates static output].each do |d|
       FileUtils.mkdir_p(File.join(dir, d))
     end
 
@@ -435,6 +544,35 @@ class BuilderTest < Minitest::Test
       +++
 
       This is the about page content.
+    MD
+
+    # ── Sample gallery with two images ────────────────────────────────────────
+    assets = File.join(dir, "content", "assets", "galleries", "photography")
+    FileUtils.mkdir_p(assets)
+    File.write(File.join(assets, "sunset.jpg"), "")
+    File.write(File.join(assets, "pier.jpg"), "")
+
+    File.write(File.join(dir, "content", "galleries", "photography.md"), <<~MD)
+      +++
+      title = "Photography"
+      date  = 2024-02-01
+
+      [[images]]
+      file    = "sunset.jpg"
+      caption = "Golden hour"
+      +++
+
+      Photos from the coast.
+    MD
+
+    # ── Draft gallery (must be excluded from all output) ─────────────────────
+    File.write(File.join(dir, "content", "galleries", "draft-gallery.md"), <<~MD)
+      +++
+      title = "Draft Gallery"
+      draft = true
+      +++
+
+      This draft gallery should never appear in output.
     MD
   end
 end

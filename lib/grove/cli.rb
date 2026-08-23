@@ -16,6 +16,7 @@ module Grove
         grove serve                      Build and serve locally at http://localhost:4000
         grove new post "<Title>"         Create a new draft post
         grove new page "<Title>"         Create a new page
+        grove new gallery "<Title>"      Create a new image gallery
     USAGE
 
     def self.run(argv)
@@ -39,7 +40,7 @@ module Grove
       when "new"
         kind  = argv[1]
         title = argv[2]
-        abort "Usage: grove new post|page \"<Title>\"" unless %w[post page].include?(kind) && title
+        abort "Usage: grove new post|page|gallery \"<Title>\"" unless %w[post page gallery].include?(kind) && title
         Generator.run(kind, title, Dir.pwd)
 
       else

@@ -24,15 +24,19 @@ module Grove
       pages = Content.scan(@site_dir)
       posts = pages.select { |p| p.kind == :post }.sort_by { |p| p.date || Date.new(0) }.reverse
       standalone_pages = pages.select { |p| p.kind == :page }
+      galleries = pages.select { |p| p.kind == :gallery }
+        .sort_by { |g| [g.date ? 0 : 1, g.date ? -g.date.jd : 0, g.title.to_s] }
 
       FileUtils.mkdir_p(@output_dir)
 
       render_posts(posts, fast: fast)
       render_pages(standalone_pages, fast: fast)
+      render_galleries(galleries)
+      render_gallery_index(galleries) unless galleries.empty?
       render_homepage(posts)
       render_tag_pages(posts)
       render_404
-      render_sitemap(posts + standalone_pages)
+      render_sitemap(posts + standalone_pages + galleries)
       render_rss(posts)
       copy_assets
     end
@@ -67,6 +71,28 @@ module Grove
         File.write(out_path, html)
         puts "  built #{page.output_path}"
       end
+    end
+
+    # Galleries deliberately ignore `fast:` — up_to_date? only compares the
+    # .md source, so adding an image to the source folder would be missed.
+    # Galleries are few and cheap to render, so always rebuild them.
+    def render_galleries(galleries)
+      galleries.each do |gallery|
+        out_path = File.join(@output_dir, gallery.output_path)
+        FileUtils.mkdir_p(File.dirname(out_path))
+        html = @renderer.render("gallery.html.erb", {page: gallery}, output_path: gallery.output_path)
+        File.write(out_path, html)
+        puts "  built #{gallery.output_path}"
+      end
+    end
+
+    def render_gallery_index(galleries)
+      output_path = "galleries/index.html"
+      out_path = File.join(@output_dir, output_path)
+      FileUtils.mkdir_p(File.dirname(out_path))
+      html = @renderer.render("gallery_index.html.erb", {galleries: galleries}, output_path: output_path)
+      File.write(out_path, html)
+      puts "  built #{output_path}"
     end
 
     def render_homepage(posts)
@@ -107,6 +133,13 @@ module Grove
       end
       all_pages.select { |p| p.kind == :page }.each do |page|
         url_tags << sitemap_url("#{base_url}/#{page.slug}/")
+      end
+      galleries = all_pages.select { |p| p.kind == :gallery }
+      unless galleries.empty?
+        url_tags << sitemap_url("#{base_url}/galleries/")
+        galleries.each do |gallery|
+          url_tags << sitemap_url("#{base_url}/galleries/#{gallery.slug}/", gallery.date)
+        end
       end
 
       sitemap = <<~XML

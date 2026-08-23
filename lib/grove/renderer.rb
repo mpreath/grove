@@ -2,6 +2,7 @@
 
 require "erb"
 require "uri"
+require "cgi"
 require_relative "utils"
 
 module Grove
@@ -62,6 +63,7 @@ module Grove
       ctx.define_singleton_method(:root_relative) { |path| "#{root_prefix}#{path}" }
       ctx.define_singleton_method(:tag_slug) { |tag| Grove::Utils.tag_slug(tag) }
       ctx.define_singleton_method(:site_url) { |path| "#{base_path}#{path}" }
+      ctx.define_singleton_method(:h) { |str| CGI.escapeHTML(str.to_s) }
 
       locals.each do |key, value|
         ctx.instance_variable_set(:"@#{key}", value)

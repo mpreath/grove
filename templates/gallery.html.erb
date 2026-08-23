@@ -1,0 +1,44 @@
+<article class="gallery" id="gallery-top">
+  <header>
+    <h1><%= page.title %></h1>
+    <% if page.date %>
+      <p class="post-meta"><time datetime="<%= page.date %>"><%= page.date.strftime("%Y-%m-%d") %></time></p>
+    <% end %>
+  </header>
+
+  <% unless page.body_html.strip.empty? %>
+    <div class="page-body">
+      <%= page.body_html %>
+    </div>
+  <% end %>
+
+  <% if page.images.empty? %>
+    <p class="gallery-empty">No images yet. Drop image files into <code>content/assets/galleries/<%= h(page.slug) %>/</code> and rebuild.</p>
+  <% else %>
+    <div class="gallery-grid">
+      <% page.images.each_with_index do |img, i| %>
+        <figure class="gallery-item">
+          <a href="#<%= h(page.slug) %>-<%= i + 1 %>">
+            <img src="<%= root_relative(img.url) %>" alt="<%= h(img.alt) %>" loading="lazy">
+          </a>
+          <% if img.caption %>
+            <figcaption><%= h(img.caption) %></figcaption>
+          <% end %>
+        </figure>
+      <% end %>
+    </div>
+
+    <% page.images.each_with_index do |img, i| %>
+      <div class="lightbox" id="<%= h(page.slug) %>-<%= i + 1 %>">
+        <a class="lightbox-backdrop" href="#gallery-top" aria-label="Close"></a>
+        <figure>
+          <img src="<%= root_relative(img.url) %>" alt="<%= h(img.alt) %>">
+          <% if img.caption %>
+            <figcaption><%= h(img.caption) %></figcaption>
+          <% end %>
+        </figure>
+        <a class="lightbox-close" href="#gallery-top" aria-label="Close">&times;</a>
+      </div>
+    <% end %>
+  <% end %>
+</article>

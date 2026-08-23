@@ -1,0 +1,22 @@
+<section>
+  <h1>Galleries</h1>
+
+  <% if galleries.empty? %>
+    <p>No galleries yet.</p>
+  <% else %>
+    <ul class="gallery-index">
+      <% galleries.each do |gallery| %>
+        <li>
+          <a href="<%= root_relative("galleries/#{gallery.slug}/") %>">
+            <% if gallery.cover %>
+              <img src="<%= root_relative(gallery.cover.url) %>" alt="<%= h(gallery.cover.alt) %>" loading="lazy">
+            <% else %>
+              <span class="gallery-cover-empty" aria-hidden="true"></span>
+            <% end %>
+            <span class="gallery-index-title"><%= gallery.title %></span>
+          </a>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>

@@ -14,6 +14,7 @@
   --border:   #ddd;
   --code-bg:  #f4f4f4;
   --max-w:    42rem;
+  --gallery-max-w: 64rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -224,4 +225,126 @@ th, td {
 th {
   background: var(--code-bg);
   font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ── Gallery ──────────────────────────────────────────── */
+.gallery-grid,
+.gallery-index {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+  padding: 0;
+  list-style: none;
+  /* Break out of the --max-w text column */
+  width: min(var(--gallery-max-w), calc(100vw - 2rem));
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.gallery-item {
+  margin: 0;
+}
+
+.gallery-item img,
+.gallery-index img {
+  margin: 0;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--code-bg);
+  border-radius: 2px;
+}
+
+.gallery-item a,
+.gallery-index a {
+  display: block;
+  text-decoration: none;
+}
+
+.gallery-item img:hover,
+.gallery-index img:hover {
+  opacity: 0.85;
+}
+
+.gallery-item figcaption {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 0.4rem;
+}
+
+.gallery-index-title {
+  display: block;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 0.9rem;
+  color: var(--accent);
+  margin-top: 0.4rem;
+}
+
+.gallery-cover-empty {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+
+.gallery-empty {
+  color: var(--muted);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 0.9rem;
+}
+
+/* ── Lightbox ─────────────────────────────────────────── */
+.lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.92);
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.lightbox:target {
+  display: flex;
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+}
+
+.lightbox figure {
+  position: relative;
+  margin: 0;
+  text-align: center;
+}
+
+.lightbox img {
+  margin: 0 auto;
+  max-width: 100%;
+  max-height: 85vh;
+  width: auto;
+  object-fit: contain;
+}
+
+.lightbox figcaption {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 0.85rem;
+  color: #e8e6e1;
+  margin-top: 0.75rem;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  font-size: 2rem;
+  line-height: 1;
+  color: #e8e6e1;
+  text-decoration: none;
 }

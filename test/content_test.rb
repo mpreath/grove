@@ -2,6 +2,7 @@
 
 require_relative "test_helper"
 require "tmpdir"
+require "fileutils"
 require "date"
 
 class ContentTest < Minitest::Test
@@ -250,6 +251,143 @@ class ContentTest < Minitest::Test
   # Helpers
   # ---------------------------------------------------------------------------
 
+  # ---------------------------------------------------------------------------
+  # Galleries
+  # ---------------------------------------------------------------------------
+
+  def test_gallery_output_path
+    with_gallery_site(images: %w[a.jpg]) do |site|
+      gallery = scan_gallery(site)
+      assert_equal File.join("galleries", "photography", "index.html"), gallery.output_path
+      assert_equal :gallery, gallery.kind
+    end
+  end
+
+  def test_gallery_auto_discovers_images_alphabetically
+    with_gallery_site(images: %w[zebra.jpg apple.png middle.webp]) do |site|
+      gallery = scan_gallery(site)
+      assert_equal %w[apple.png middle.webp zebra.jpg], gallery.images.map(&:file)
+    end
+  end
+
+  def test_gallery_image_urls_are_output_root_relative
+    with_gallery_site(images: %w[a.jpg]) do |site|
+      gallery = scan_gallery(site)
+      assert_equal "galleries/photography/a.jpg", gallery.images.first.url
+    end
+  end
+
+  def test_gallery_ignores_non_image_files
+    with_gallery_site(images: %w[a.jpg notes.txt archive.zip]) do |site|
+      gallery = scan_gallery(site)
+      assert_equal %w[a.jpg], gallery.images.map(&:file)
+    end
+  end
+
+  def test_gallery_honors_explicit_source
+    Dir.mktmpdir do |site|
+      FileUtils.mkdir_p(File.join(site, "content", "galleries"))
+      FileUtils.mkdir_p(File.join(site, "content", "assets", "art", "paintings"))
+      File.write(File.join(site, "content", "assets", "art", "paintings", "oil.jpg"), "")
+      File.write(File.join(site, "content", "galleries", "photography.md"), <<~MD)
+        +++
+        title  = "Photography"
+        source = "art/paintings"
+        +++
+
+      MD
+      gallery = scan_gallery(site)
+      assert_equal %w[oil.jpg], gallery.images.map(&:file)
+      assert_equal "art/paintings/oil.jpg", gallery.images.first.url
+    end
+  end
+
+  def test_gallery_overrides_reorder_and_attach_captions
+    front_matter = <<~TOML
+      [[images]]
+      file    = "zebra.jpg"
+      caption = "A zebra"
+      alt     = "Striped horse"
+    TOML
+
+    with_gallery_site(images: %w[apple.jpg zebra.jpg], extra: front_matter) do |site|
+      gallery = scan_gallery(site)
+      assert_equal %w[zebra.jpg apple.jpg], gallery.images.map(&:file)
+      assert_equal "A zebra", gallery.images.first.caption
+      assert_equal "Striped horse", gallery.images.first.alt
+      assert_nil gallery.images.last.caption
+    end
+  end
+
+  def test_gallery_override_for_missing_file_is_skipped
+    front_matter = <<~TOML
+      [[images]]
+      file    = "gone.jpg"
+      caption = "Nope"
+    TOML
+
+    with_gallery_site(images: %w[a.jpg], extra: front_matter) do |site|
+      gallery = nil
+      _out, err = capture_io { gallery = scan_gallery(site) }
+      assert_equal %w[a.jpg], gallery.images.map(&:file)
+      assert_includes err, "gone.jpg"
+    end
+  end
+
+  def test_gallery_with_missing_source_folder_has_no_images
+    Dir.mktmpdir do |site|
+      FileUtils.mkdir_p(File.join(site, "content", "galleries"))
+      File.write(File.join(site, "content", "galleries", "photography.md"), <<~MD)
+        +++
+        title = "Photography"
+        +++
+
+      MD
+      gallery = nil
+      _out, err = capture_io { gallery = scan_gallery(site) }
+      assert_equal [], gallery.images
+      assert_nil gallery.cover
+      assert_includes err, "no image folder"
+    end
+  end
+
+  def test_gallery_draft_is_skipped
+    with_gallery_site(images: %w[a.jpg], extra: "draft = true\n") do |site|
+      assert_equal [], Grove::Content.scan(site).select { |p| p.kind == :gallery }
+    end
+  end
+
+  def test_gallery_cover_defaults_to_first_image
+    with_gallery_site(images: %w[apple.jpg zebra.jpg]) do |site|
+      assert_equal "apple.jpg", scan_gallery(site).cover.file
+    end
+  end
+
+  def test_gallery_cover_honors_front_matter
+    with_gallery_site(images: %w[apple.jpg zebra.jpg], extra: 'cover = "zebra.jpg"' + "\n") do |site|
+      assert_equal "zebra.jpg", scan_gallery(site).cover.file
+    end
+  end
+
+  def test_gallery_cover_falls_back_when_named_file_is_missing
+    with_gallery_site(images: %w[apple.jpg], extra: 'cover = "gone.jpg"' + "\n") do |site|
+      assert_equal "apple.jpg", scan_gallery(site).cover.file
+    end
+  end
+
+  def test_gallery_alt_derives_from_filename
+    with_gallery_site(images: %w[sunset-over-dunes.jpg]) do |site|
+      assert_equal "Sunset over dunes", scan_gallery(site).images.first.alt
+    end
+  end
+
+  def test_posts_and_pages_have_no_images
+    Dir.mktmpdir do |dir|
+      File.write(File.join(dir, "2024-01-15-hello.md"), valid_post_md("Hello"))
+      assert_nil Grove::Content.scan_dir(dir, :post).first.images
+    end
+  end
+
   private
 
   def valid_post_md(title)
@@ -273,5 +411,30 @@ class ContentTest < Minitest::Test
 
       Content for #{title}.
     MD
+  end
+
+  # Builds a throwaway site with one gallery at content/galleries/photography.md
+  # and the given image filenames under content/assets/galleries/photography/.
+  def with_gallery_site(images:, extra: nil)
+    Dir.mktmpdir do |site|
+      FileUtils.mkdir_p(File.join(site, "content", "galleries"))
+      assets = File.join(site, "content", "assets", "galleries", "photography")
+      FileUtils.mkdir_p(assets)
+      images.each { |name| File.write(File.join(assets, name), "") }
+
+      File.write(File.join(site, "content", "galleries", "photography.md"), <<~MD)
+        +++
+        title = "Photography"
+        #{extra}+++
+
+        Intro text.
+      MD
+
+      yield site
+    end
+  end
+
+  def scan_gallery(site)
+    Grove::Content.scan(site).find { |p| p.kind == :gallery }
   end
 end

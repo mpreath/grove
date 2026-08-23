@@ -14,7 +14,7 @@ module Grove
       puts "Grove: creating site '#{site_name}'"
 
       # Directories
-      %w[content/posts content/pages content/assets templates static output].each do |dir|
+      %w[content/posts content/pages content/galleries content/assets/galleries/photography templates static output].each do |dir|
         FileUtils.mkdir_p(File.join(dest, dir))
       end
 
@@ -30,6 +30,7 @@ module Grove
       # Sample content
       write_sample_post(dest)
       write_sample_page(dest)
+      write_sample_gallery(dest)
 
       puts "Grove: done! cd #{site_name} && grove build"
     end
@@ -50,6 +51,10 @@ module Grove
         [[nav]]
         label = "About"
         url   = "/about/"
+
+        [[nav]]
+        label = "Galleries"
+        url   = "/galleries/"
       TOML
     end
 
@@ -83,6 +88,25 @@ module Grove
         +++
 
         This is the about page. Tell visitors who you are.
+      MD
+    end
+
+    def self.write_sample_gallery(dest)
+      path = File.join(dest, "content", "galleries", "photography.md")
+      File.write(path, <<~MD)
+        +++
+        title = "Photography"
+        # source = "galleries/photography"   # defaults to galleries/<slug>
+        # cover  = "sunset.jpg"              # defaults to the first image
+        +++
+
+        Drop image files into `content/assets/galleries/photography/` and they
+        will appear here, sorted by filename. To add a caption or change the
+        order, name a file in the front matter:
+
+            [[images]]
+            file    = "sunset.jpg"
+            caption = "Golden hour"
       MD
     end
 
